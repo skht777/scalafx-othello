@@ -9,7 +9,7 @@ case class ViewUnit(size: Point[Int]) {
 
   def view = state.view
 
-  def trans(s: State => State) = state = s(state)
+  def reverse(put: Point[Int]) = state = field.reverse(put)(state)
 
   def status() = field.transStatus
 

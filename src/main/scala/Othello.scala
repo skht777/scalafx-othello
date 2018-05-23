@@ -8,6 +8,18 @@ import scalafx.scene.paint.Color
 import scalafxml.core.macros.sfxml
 import scalafxml.core.{FXMLView, NoDependencyResolver}
 
+/**
+  *
+  * @author skht777
+  *
+  */
+object Othello extends JFXApp {
+  stage = new PrimaryStage {
+    title = "othello"
+    scene = new Scene(FXMLView(getClass.getResource("root.fxml"), NoDependencyResolver))
+  }
+}
+
 @sfxml
 class fieldController(private val canvas: Canvas) {
   private[this] val unit = ViewUnit(Point(8, 8))
@@ -18,12 +30,7 @@ class fieldController(private val canvas: Canvas) {
   def operate(e: MouseEvent): Unit = {
     val se = jfxMouseEvent2sfx(e)
     val p = Point(se.x, se.y) map (n => Math.floor(n / blockSize) toInt)
-    drawBlock(p, blockSize, false)
-
-  }
-
-  private[this] def transAndDraw(trans: State => State) = {
-    unit.trans(trans)
+    unit.reverse(p)
     drawView()
   }
 
@@ -39,10 +46,12 @@ class fieldController(private val canvas: Canvas) {
     gc.fill = Color.Green
     gc.fillRect(0, 0, canvas getWidth, canvas getHeight)
     strokeLines(unit.size.x, unit.size.y, blockSize)
-    drawBlock(Point(3, 3), blockSize, false)
-    drawBlock(Point(4, 3), blockSize, true)
-    drawBlock(Point(3, 4), blockSize, true)
-    drawBlock(Point(4, 4), blockSize, false)
+    (0 to 8) foreach (y =>
+      (0 to 8) foreach (x => {
+        if (unit.view.black.check(x, y)) drawBlock(Point(x, y), blockSize, true)
+        if (unit.view.white.check(x, y)) drawBlock(Point(x, y), blockSize, false)
+      })
+      )
 
     gc.stroke = Color.White
     //
@@ -60,17 +69,5 @@ class fieldController(private val canvas: Canvas) {
     gc.fill = if (inverse) Color.Black else Color.White
     gc.stroke = Color.Black
     gc.fillOval(p.x, p.y, r, r)
-  }
-}
-
-/**
-  *
-  * @author skht777
-  *
-  */
-object Othello extends JFXApp {
-  stage = new PrimaryStage {
-    title = "othello"
-    scene = new Scene(FXMLView(getClass.getResource("root.fxml"), NoDependencyResolver))
   }
 }
