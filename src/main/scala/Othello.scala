@@ -5,6 +5,7 @@ import scalafx.scene.Scene
 import scalafx.scene.canvas.{Canvas, GraphicsContext}
 import scalafx.scene.input.MouseEvent
 import scalafx.scene.paint.Color
+import scalafx.scene.text.Font
 import scalafxml.core.macros.sfxml
 import scalafxml.core.{FXMLView, NoDependencyResolver}
 
@@ -25,6 +26,7 @@ class fieldController(private val canvas: Canvas) {
   private[this] val unit = ViewUnit(Point(8, 8))
   private[this] val blockSize = canvas.getWidth / unit.size.x
   private[this] val gc: GraphicsContext = jfxGraphicsContext2sfx(canvas getGraphicsContext2D)
+  gc.font = Font.font(40)
   drawView()
 
   def operate(e: MouseEvent): Unit = {
@@ -45,10 +47,10 @@ class fieldController(private val canvas: Canvas) {
       0 to h map (i => i * size) foreach (y => strokeLine(exX, exY + y, size * w, 0))
     }
 
-    def drawBlock(pos: Point[Int], size: Double, inverse: Boolean) = {
+    def drawStone(inverse: Boolean)(pos: Point[Int]) = {
       val margin = 20.0
-      val p = pos.map(n => n.toDouble) * size + Point(margin, margin) * 0.5
-      val r = size - margin
+      val p = pos.map(n => n.toDouble) * blockSize + Point(margin, margin) * 0.5
+      val r = blockSize - margin
       gc.fill = if (inverse) Color.Black else Color.White
       gc.stroke = Color.Black
       gc.fillOval(p.x, p.y, r, r)
@@ -57,15 +59,21 @@ class fieldController(private val canvas: Canvas) {
     gc.fill = Color.Green
     gc.fillRect(0, 0, canvas getWidth, canvas getHeight)
     strokeLines(unit.size.x, unit.size.y, blockSize)
-    (0 to 8) foreach (y => {
-      (0 to 8) foreach (x => {
-        val p = Point(x, y)
-        if (unit.view.black.check(p)) drawBlock(p, blockSize, true)
-        if (unit.view.white.check(p)) drawBlock(p, blockSize, false)
-      })
-    })
+    val range = (0 to 64) map (n => Point(n % 8, n / 8))
+    val black = range filter unit.view.black.check
+    val white = range filter unit.view.white.check
+    black foreach drawStone(true)
+    white foreach drawStone(false)
 
-    gc.stroke = Color.White
+    gc.fill = Color.Gray
+    gc.fillRect(200, 850, 400, 100)
+    gc.fill = Color.White
+    gc.fillOval(250, 870, 60, 60)
+    gc.fill = Color.Black
+    gc.fillOval(490, 870, 60, 60)
+    gc.fillText(black.length.toString + " - " + white.length.toString, 350, 915)
+    gc.fillRect(if (unit.view.turn == Turn.White) 250 else 490, 940, 60, 10)
+
     //
     /*unit.view.status match {
       case Status.Ready => gc.strokeText("press the enter", size / 2, size / 2)

@@ -44,6 +44,7 @@ object BitBoard {
         res |= tmp
       }
     })
+
     (player ^ (pos | res), opponent ^ res)
   }
 
@@ -57,6 +58,7 @@ object BitBoard {
     val empty = ~(player | opponent).bits
     var legal: Long = 0L
     Direction.values.foreach(d => legal |= empty & makeTransBoard(player, opponent, d))
+
     BitBoard(legal)
   }
 }

@@ -4,7 +4,7 @@
   *
   */
 case class Field() {
-  val transStatus = (s: State) => s.status match {
+  val transStatus = (s: State) => s.view.status match {
     case Status.Ready => s.copy(status = Status.Active)
     case Status.GameOver => initState
     case _ => s
@@ -15,21 +15,22 @@ case class Field() {
   def initState = State(BitBoard.BLACK, BitBoard.WHITE)
 }
 
-sealed case class State(black: BitBoard, white: BitBoard, index: Int = 0, status: Status = Status.Ready) {
-  private[this] val legal: BitBoard = if (index % 2 == 0) BitBoard.makeLegalBoard(black, white) else BitBoard.makeLegalBoard(white, black)
+sealed case class State(private val black: BitBoard, private val white: BitBoard, private val index: Int = 0, private val status: Status = Status.Ready) {
+  private[this] val turn: Turn = if (index % 2 == 0) Turn.Black else Turn.White
+  private[this] val legal: BitBoard = if (turn == Turn.Black) BitBoard.makeLegalBoard(black, white) else BitBoard.makeLegalBoard(white, black)
 
-  def view: View = View(black, white, legal, status)
+  def view: View = View(black, white, legal, turn, status)
 
   def update(put: Point[Int]): State = {
-    val (nb, nw) = index % 2 match {
-      case 0 => BitBoard.makeReversedBoard(put)(black, white)
-      case 1 => BitBoard.makeReversedBoard(put)(white, black) swap
-    }
+    val (nb, nw) = if (turn == Turn.Black)
+      BitBoard.makeReversedBoard(put)(black, white)
+    else BitBoard.makeReversedBoard(put)(white, black) swap
+
     copy(nb, nw, index + 1)
   }
 }
 
-sealed case class View(black: BitBoard, white: BitBoard, legal: BitBoard, status: Status)
+sealed case class View(black: BitBoard, white: BitBoard, legal: BitBoard, turn: Turn, status: Status)
 
 sealed trait Status
 
@@ -40,6 +41,16 @@ object Status {
   case object Ready extends Status
 
   case object GameOver extends Status
+
+}
+
+sealed trait Turn
+
+object Turn {
+
+  case object Black extends Turn
+
+  case object White extends Turn
 
 }
 
