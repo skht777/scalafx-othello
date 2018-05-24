@@ -20,7 +20,7 @@ sealed case class BitBoard(private val bits: Long) {
 
   def ^(bit: BitBoard): BitBoard = this ^ bit.bits
 
-  def check(x: Int, y: Int): Boolean = (bits >> (x + y * 8) & 1) != 0
+  def check(put: Point[Int]): Boolean = (bits >> (put.x + put.y * 8) & 1) != 0
 }
 
 object BitBoard {
@@ -28,11 +28,9 @@ object BitBoard {
   val BLACK = BitBoard(0x0000000810000000L)
   val WHITE = BitBoard(0x0000001008000000L)
 
-  private def apply(put: Point[Int]): BitBoard = {
-    BitBoard(1L << (put.x + put.y * 8))
-  }
+  private def apply(put: Point[Int]): BitBoard = BitBoard(1L << (put.x + put.y * 8))
 
-  def makeReversedBoard(put: Point[Int], player: BitBoard, opponent: BitBoard): (BitBoard, BitBoard) = {
+  def makeReversedBoard(put: Point[Int])(player: BitBoard, opponent: BitBoard): (BitBoard, BitBoard) = {
     val pos = apply(put)
     var res = 0L
     Direction.values.foreach(d => {
@@ -52,14 +50,14 @@ object BitBoard {
   private def makeTransBoard(player: BitBoard, opponent: BitBoard, direction: Direction): Long = {
     var trans = opponent & direction.shift(player)
     (0 to 5) foreach (_ => trans = trans | (opponent & direction.shift(trans)))
-    trans.bits
+    direction.shift(trans).bits
   }
 
-  def makeLegalBoard(player: BitBoard, opponent: BitBoard): Long = {
+  def makeLegalBoard(player: BitBoard, opponent: BitBoard): BitBoard = {
     val empty = ~(player | opponent).bits
     var legal: Long = 0L
     Direction.values.foreach(d => legal |= empty & makeTransBoard(player, opponent, d))
-    legal
+    BitBoard(legal)
   }
 }
 

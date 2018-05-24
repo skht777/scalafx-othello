@@ -30,8 +30,10 @@ class fieldController(private val canvas: Canvas) {
   def operate(e: MouseEvent): Unit = {
     val se = jfxMouseEvent2sfx(e)
     val p = Point(se.x, se.y) map (n => Math.floor(n / blockSize) toInt)
-    unit.reverse(p)
-    drawView()
+    if (unit.view.legal.check(p)) {
+      unit.reverse(p)
+      drawView()
+    }
   }
 
   private[this] def drawView() = {
@@ -43,15 +45,25 @@ class fieldController(private val canvas: Canvas) {
       0 to h map (i => i * size) foreach (y => strokeLine(exX, exY + y, size * w, 0))
     }
 
+    def drawBlock(pos: Point[Int], size: Double, inverse: Boolean) = {
+      val margin = 20.0
+      val p = pos.map(n => n.toDouble) * size + Point(margin, margin) * 0.5
+      val r = size - margin
+      gc.fill = if (inverse) Color.Black else Color.White
+      gc.stroke = Color.Black
+      gc.fillOval(p.x, p.y, r, r)
+    }
+
     gc.fill = Color.Green
     gc.fillRect(0, 0, canvas getWidth, canvas getHeight)
     strokeLines(unit.size.x, unit.size.y, blockSize)
-    (0 to 8) foreach (y =>
+    (0 to 8) foreach (y => {
       (0 to 8) foreach (x => {
-        if (unit.view.black.check(x, y)) drawBlock(Point(x, y), blockSize, true)
-        if (unit.view.white.check(x, y)) drawBlock(Point(x, y), blockSize, false)
+        val p = Point(x, y)
+        if (unit.view.black.check(p)) drawBlock(p, blockSize, true)
+        if (unit.view.white.check(p)) drawBlock(p, blockSize, false)
       })
-      )
+    })
 
     gc.stroke = Color.White
     //
@@ -60,14 +72,5 @@ class fieldController(private val canvas: Canvas) {
       case Status.GameOver => gc.strokeText("game over", size / 2, size / 2)
       case _ =>
     }*/
-  }
-
-  private[this] def drawBlock(pos: Point[Int], size: Double, inverse: Boolean) = {
-    val margin = 20.0
-    val p = pos.map(n => n.toDouble) * size + Point(margin, margin) * 0.5
-    val r = size - margin
-    gc.fill = if (inverse) Color.Black else Color.White
-    gc.stroke = Color.Black
-    gc.fillOval(p.x, p.y, r, r)
   }
 }
