@@ -23,8 +23,8 @@ object Othello extends JFXApp {
 
 @sfxml
 class fieldController(private val canvas: Canvas) {
-  private[this] val unit = ViewUnit(Point(8, 8))
-  private[this] val blockSize = canvas.getWidth / unit.size.x
+  private[this] val unit = ViewUnit()
+  private[this] val blockSize = canvas.getWidth / 8
   private[this] val gc: GraphicsContext = jfxGraphicsContext2sfx(canvas getGraphicsContext2D)
   gc.font = Font.font(40)
   drawView()
@@ -38,7 +38,7 @@ class fieldController(private val canvas: Canvas) {
     }
   }
 
-  private[this] def drawView() = {
+  private[this] def drawView(): Unit = {
     def strokeLine(x: Double, y: Double, w: Double, h: Double) = gc.strokeLine(x, y, x + w, y + h)
 
     def strokeLines(w: Int, h: Int, size: Double, exX: Double = 0, exY: Double = 0) = {
@@ -58,7 +58,7 @@ class fieldController(private val canvas: Canvas) {
 
     gc.fill = Color.Green
     gc.fillRect(0, 0, canvas getWidth, canvas getHeight)
-    strokeLines(unit.size.x, unit.size.y, blockSize)
+    strokeLines(8, 8, blockSize)
     val range = (0 to 64) map (n => Point(n % 8, n / 8))
     val black = range filter unit.view.black.check
     val white = range filter unit.view.white.check
@@ -71,14 +71,13 @@ class fieldController(private val canvas: Canvas) {
     gc.fillOval(250, 870, 60, 60)
     gc.fill = Color.Black
     gc.fillOval(490, 870, 60, 60)
-    gc.fillText(black.length.toString + " - " + white.length.toString, 350, 915)
+    gc.fillText(white.length.toString + " - " + black.length.toString, 350, 915)
     gc.fillRect(if (unit.view.turn == Turn.White) 250 else 490, 940, 60, 10)
 
-    //
-    /*unit.view.status match {
-      case Status.Ready => gc.strokeText("press the enter", size / 2, size / 2)
-      case Status.GameOver => gc.strokeText("game over", size / 2, size / 2)
-      case _ =>
-    }*/
+    val legal = range filter unit.view.legal.check
+    if (black.length + white.length != range.length && legal.isEmpty) {
+      unit.pass()
+      drawView()
+    }
   }
 }

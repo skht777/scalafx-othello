@@ -3,16 +3,24 @@
   * @author skht777
   *
   */
-case class Field() {
+object State {
   val transStatus = (s: State) => s.view.status match {
     case Status.Ready => s.copy(status = Status.Active)
-    case Status.GameOver => initState
+    case Status.GameOver => apply
     case _ => s
   }
 
-  val reverse = (put: Point[Int]) => (s: State) => s.update(put)
+  val reverse = (put: Point[Int]) => (s: State) => {
+    val (nb, nw) = if (s.view.turn == Turn.Black)
+      BitBoard.makeReversedBoard(put)(s.black, s.white)
+    else BitBoard.makeReversedBoard(put)(s.white, s.black) swap
 
-  def initState = State(BitBoard.BLACK, BitBoard.WHITE)
+    s.copy(nb, nw, s.index + 1)
+  }
+
+  val pass = (s: State) => s.copy(index = s.index + 1)
+
+  def apply: State = State(BitBoard.BLACK, BitBoard.WHITE)
 }
 
 sealed case class State(private val black: BitBoard, private val white: BitBoard, private val index: Int = 0, private val status: Status = Status.Ready) {
@@ -20,14 +28,6 @@ sealed case class State(private val black: BitBoard, private val white: BitBoard
   private[this] val legal: BitBoard = if (turn == Turn.Black) BitBoard.makeLegalBoard(black, white) else BitBoard.makeLegalBoard(white, black)
 
   def view: View = View(black, white, legal, turn, status)
-
-  def update(put: Point[Int]): State = {
-    val (nb, nw) = if (turn == Turn.Black)
-      BitBoard.makeReversedBoard(put)(black, white)
-    else BitBoard.makeReversedBoard(put)(white, black) swap
-
-    copy(nb, nw, index + 1)
-  }
 }
 
 sealed case class View(black: BitBoard, white: BitBoard, legal: BitBoard, turn: Turn, status: Status)
