@@ -51,7 +51,8 @@ object BitBoard {
   private def makeTransBoard(player: BitBoard, opponent: BitBoard, direction: Direction): Long = {
     var trans = opponent & direction.shift(player)
     (0 to 5) foreach (_ => trans = trans | (opponent & direction.shift(trans)))
-    direction.shift(trans).bits
+
+    direction.shift(trans, false).bits
   }
 
   def makeLegalBoard(player: BitBoard, opponent: BitBoard): BitBoard = {
@@ -63,8 +64,11 @@ object BitBoard {
   }
 }
 
-sealed trait Direction {
-  def shift(trans: BitBoard): BitBoard
+final class Direction private(private[this] val mask: Long, private[this] val shift: BitBoard => BitBoard) {
+  def shift(trans: BitBoard, applyMask: Boolean = true): BitBoard = {
+    val res = shift(trans)
+    if (applyMask) res & mask else res
+  }
 }
 
 object Direction {
@@ -76,39 +80,21 @@ object Direction {
 
   private def rshift(n: Int): BitBoard => BitBoard = l => l >> n
 
-  private def shift(trans: BitBoard, mask: Long, shift: BitBoard => BitBoard) = shift(trans) & mask
+  val Left = new Direction(hmask, lshift(1))
 
-  case object Left extends Direction {
-    override def shift(trans: BitBoard) = Direction.shift(trans, hmask, lshift(1))
-  }
+  val Right = new Direction(hmask, rshift(1))
 
-  case object Right extends Direction {
-    override def shift(trans: BitBoard) = Direction.shift(trans, hmask, rshift(1))
-  }
+  val Up = new Direction(vmask, lshift(8))
 
-  case object Up extends Direction {
-    override def shift(trans: BitBoard) = Direction.shift(trans, vmask, lshift(8))
-  }
+  val Down = new Direction(vmask, rshift(8))
 
-  case object Down extends Direction {
-    override def shift(trans: BitBoard) = Direction.shift(trans, vmask, rshift(8))
-  }
+  val UpLeft = new Direction(vhmask, lshift(7))
 
-  case object UpLeft extends Direction {
-    override def shift(trans: BitBoard) = Direction.shift(trans, vhmask, lshift(7))
-  }
+  val DownLeft = new Direction(vhmask, rshift(7))
 
-  case object DownLeft extends Direction {
-    override def shift(trans: BitBoard) = Direction.shift(trans, vhmask, rshift(7))
-  }
+  val UpRight = new Direction(vhmask, lshift(9))
 
-  case object UpRight extends Direction {
-    override def shift(trans: BitBoard) = Direction.shift(trans, vhmask, lshift(9))
-  }
-
-  case object DownRight extends Direction {
-    override def shift(trans: BitBoard) = Direction.shift(trans, vhmask, rshift(9))
-  }
+  val DownRight = new Direction(vhmask, rshift(9))
 
   def values = Seq(Left, Right, Up, Down, UpLeft, DownLeft, UpRight, DownRight)
 }

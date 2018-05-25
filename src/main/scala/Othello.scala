@@ -47,12 +47,11 @@ class fieldController(private val canvas: Canvas) {
       0 to h map (i => i * size) foreach (y => strokeLine(exX, exY + y, size * w, 0))
     }
 
-    def drawStone(inverse: Boolean)(pos: Point[Int]) = {
+    def drawStone(inverse: Boolean, opacity: Double = 1)(pos: Point[Int]) = {
       val margin = 20.0
       val p = pos.map(n => n.toDouble) * blockSize + Point(margin, margin) * 0.5
       val r = blockSize - margin
-      gc.fill = if (inverse) Color.Black else Color.White
-      gc.stroke = Color.Black
+      gc.fill = if (inverse) Color.Black.opacity(opacity) else Color.White.opacity(opacity)
       gc.fillOval(p.x, p.y, r, r)
     }
 
@@ -75,6 +74,7 @@ class fieldController(private val canvas: Canvas) {
     gc.fillRect(if (unit.view.turn == Turn.White) 250 else 490, 940, 60, 10)
 
     val legal = range filter unit.view.legal.check
+    // legal foreach drawStone(unit.view.turn != Turn.White, 0.5)
     if (black.length + white.length != range.length && legal.isEmpty) {
       unit.pass()
       drawView()
