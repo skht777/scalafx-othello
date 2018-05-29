@@ -30,71 +30,75 @@ object BitBoard {
 
   private def apply(put: Point[Int]): BitBoard = BitBoard(1L << (put.x + put.y * 8))
 
-  def makeReversedBoard(put: Point[Int])(player: BitBoard, opponent: BitBoard): (BitBoard, BitBoard) = {
-    val pos = apply(put)
-    var res = 0L
+  def makeReverseBoard(pos: BitBoard, player: BitBoard, opponent: BitBoard): BitBoard = {
+    var res = ZERO
     Direction.values.foreach(d => {
-      var tmp = 0L
-      var mask = d.shift(pos)
+      var tmp = ZERO
+      var mask = d.reverseShift(pos)
       while (mask != ZERO && (mask & opponent) != ZERO) {
-        tmp |= mask.bits
-        mask = d.shift(mask)
+        tmp |= mask
+        mask = d.reverseShift(mask)
       }
       if ((mask & player) != ZERO) {
         res |= tmp
       }
     })
 
+    res
+  }
+
+  def makeReversedBoard(put: Point[Int])(player: BitBoard, opponent: BitBoard): (BitBoard, BitBoard) = {
+    val pos = apply(put)
+    val res = makeReverseBoard(pos, player, opponent)
     (player ^ (pos | res), opponent ^ res)
   }
 
-  private def makeTransBoard(player: BitBoard, opponent: BitBoard, direction: Direction): Long = {
-    var trans = opponent & direction.shift(player)
-    (0 to 5) foreach (_ => trans = trans | (opponent & direction.shift(trans)))
+  private def makeTransBoard(player: BitBoard, opponent: BitBoard, direction: Direction): BitBoard = {
+    var trans = opponent & direction.legalShift(player)
+    (1 to 5) foreach (_ => trans |= opponent & direction.legalShift(trans))
 
-    direction.shift(trans, false).bits
+    direction.legalShift(trans, false)
   }
 
   def makeLegalBoard(player: BitBoard, opponent: BitBoard): BitBoard = {
     val empty = ~(player | opponent).bits
-    var legal: Long = 0L
-    Direction.values.foreach(d => legal |= empty & makeTransBoard(player, opponent, d))
+    var legal = ZERO
+    Direction.values.foreach(d => legal |= makeTransBoard(player, opponent, d) & empty)
 
-    BitBoard(legal)
+    legal
   }
 }
 
-final class Direction private(private[this] val mask: Long, private[this] val shift: BitBoard => BitBoard) {
-  def shift(trans: BitBoard, applyMask: Boolean = true): BitBoard = {
+final case class Direction private(private val reverseMask: Long, private val legalMask: Long, private val shift: BitBoard => BitBoard) {
+  private def shift(trans: BitBoard, mask: Long, applyMask: Boolean = true): BitBoard = {
     val res = shift(trans)
     if (applyMask) res & mask else res
   }
+
+  def legalShift(trans: BitBoard, applyMask: Boolean = true): BitBoard = shift(trans, legalMask, applyMask)
+
+  def reverseShift(trans: BitBoard): BitBoard = shift(trans, reverseMask)
 }
 
 object Direction {
-  private val hmask = 0x7e7e7e7e7e7e7e7eL
-  private val vmask = 0x00ffffffffffff00L
+  private val lmask = 0xfefefefefefefefeL
+  private val rmask = 0x7f7f7f7f7f7f7f7fL
+  private val umask = 0xffffffffffffff00L
+  private val dmask = 0x00ffffffffffffffL
+  private val hmask = lmask & rmask
+  private val vmask = umask & dmask
   private val vhmask = hmask & vmask
+  private val lshift = (n: Long) => (l: BitBoard) => l << n
+  private val rshift = (n: Long) => (l: BitBoard) => l >> n
 
-  private def lshift(n: Int): BitBoard => BitBoard = l => l << n
-
-  private def rshift(n: Int): BitBoard => BitBoard = l => l >> n
-
-  val Left = new Direction(hmask, lshift(1))
-
-  val Right = new Direction(hmask, rshift(1))
-
-  val Up = new Direction(vmask, lshift(8))
-
-  val Down = new Direction(vmask, rshift(8))
-
-  val UpLeft = new Direction(vhmask, lshift(7))
-
-  val DownLeft = new Direction(vhmask, rshift(7))
-
-  val UpRight = new Direction(vhmask, lshift(9))
-
-  val DownRight = new Direction(vhmask, rshift(9))
+  val Left = Direction(lmask, hmask, lshift(1))
+  val Right = Direction(rmask, hmask, rshift(1))
+  val Up = Direction(umask, vmask, lshift(8))
+  val Down = Direction(dmask, vmask, rshift(8))
+  val UpLeft = Direction(umask & lmask, vhmask, lshift(9))
+  val DownLeft = Direction(dmask & lmask, vhmask, rshift(7))
+  val UpRight = Direction(umask & rmask, vhmask, lshift(7))
+  val DownRight = Direction(dmask & rmask, vhmask, rshift(9))
 
   def values = Seq(Left, Right, Up, Down, UpLeft, DownLeft, UpRight, DownRight)
 }

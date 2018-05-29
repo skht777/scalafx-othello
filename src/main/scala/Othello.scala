@@ -58,7 +58,7 @@ class fieldController(private val canvas: Canvas) {
     gc.fill = Color.Green
     gc.fillRect(0, 0, canvas getWidth, canvas getHeight)
     strokeLines(8, 8, blockSize)
-    val range = (0 to 64) map (n => Point(n % 8, n / 8))
+    val range = (0 until 64) map (n => Point(n % 8, n / 8))
     val black = range filter unit.view.black.check
     val white = range filter unit.view.white.check
     black foreach drawStone(true)
@@ -70,7 +70,7 @@ class fieldController(private val canvas: Canvas) {
     gc.fillOval(250, 870, 60, 60)
     gc.fill = Color.Black
     gc.fillOval(490, 870, 60, 60)
-    gc.fillText(white.length.toString + " - " + black.length.toString, 350, 915)
+    gc.fillText(white.length.toString + " - " + black.length.toString, 340, 915)
     gc.fillRect(if (unit.view.turn == Turn.White) 250 else 490, 940, 60, 10)
 
     val legal = range filter unit.view.legal.check
