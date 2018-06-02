@@ -1,3 +1,5 @@
+import scala.annotation.tailrec
+
 /**
   *
   * @author skht777
@@ -31,20 +33,13 @@ object BitBoard {
   private def apply(put: Point[Int]): BitBoard = BitBoard(1L << (put.x + put.y * 8))
 
   def makeReverseBoard(pos: BitBoard, player: BitBoard, opponent: BitBoard): BitBoard = {
-    var res = ZERO
-    Direction.values.foreach(d => {
-      var tmp = ZERO
-      var mask = d.reverseShift(pos)
-      while (mask != ZERO && (mask & opponent) != ZERO) {
-        tmp |= mask
-        mask = d.reverseShift(mask)
-      }
-      if ((mask & player) != ZERO) {
-        res |= tmp
-      }
-    })
+    @tailrec
+    def recursive(head: BitBoard, tails: Seq[BitBoard] = Seq())(d: Direction): BitBoard = {
+      if ((head & opponent) != ZERO) recursive(d.reverseShift(head), tails :+ head)(d)
+      else if ((head & player) != ZERO) tails.foldLeft(ZERO)(_ | _) else ZERO
+    }
 
-    res
+    Direction.values.map(d => recursive(d.reverseShift(pos))(d)).foldLeft(ZERO)(_ | _)
   }
 
   def makeReversedBoard(put: Point[Int])(player: BitBoard, opponent: BitBoard): (BitBoard, BitBoard) = {
@@ -54,18 +49,17 @@ object BitBoard {
   }
 
   private def makeTransBoard(player: BitBoard, opponent: BitBoard, direction: Direction): BitBoard = {
-    var trans = opponent & direction.legalShift(player)
-    (1 to 5) foreach (_ => trans |= opponent & direction.legalShift(trans))
+    def trans(board: BitBoard) = opponent & direction.legalShift(board)
 
-    direction.legalShift(trans, false)
+    val res = (1 to 5).foldLeft(trans(player)) { (b, _) => b | trans(b) }
+
+    direction.legalShift(res, false)
   }
 
   def makeLegalBoard(player: BitBoard, opponent: BitBoard): BitBoard = {
     val empty = ~(player | opponent).bits
-    var legal = ZERO
-    Direction.values.foreach(d => legal |= makeTransBoard(player, opponent, d) & empty)
 
-    legal
+    Direction.values.map(makeTransBoard(player, opponent, _) & empty).foldLeft(ZERO)(_ | _)
   }
 }
 
