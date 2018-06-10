@@ -11,7 +11,7 @@ object State {
   }
 
   val reverse = (put: Point[Int]) => (s: State) => {
-    def reverse = BitBoard.makeReversedBoard(put)(_, _)
+    val reverse = BitBoard.makeReversedBoard(put)(_, _)
 
     val (nb, nw) = if (s.view.turn == Turn.Black) reverse(s.black, s.white)
     else reverse(s.white, s.black) swap

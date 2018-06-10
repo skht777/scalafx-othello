@@ -32,7 +32,7 @@ class fieldController(private val canvas: Canvas) {
   def operate(e: MouseEvent): Unit = {
     val se = jfxMouseEvent2sfx(e)
     val p = Point(se.x, se.y) map (n => Math.floor(n / blockSize) toInt)
-    if (unit.view.legal.check(p)) {
+    if (unit.view.legal.valid(p)) {
       unit.reverse(p)
       drawView()
     }
@@ -58,9 +58,9 @@ class fieldController(private val canvas: Canvas) {
     gc.fill = Color.Green
     gc.fillRect(0, 0, canvas getWidth, canvas getHeight)
     strokeLines(8, 8, blockSize)
-    val range = (0 until 64) map (n => Point(n % 8, n / 8))
-    val black = range filter unit.view.black.check
-    val white = range filter unit.view.white.check
+    val range = (b: BitBoard) => (0 until 64) filter (n => b.valid(1L << n)) map (n => Point(n % 8, n / 8))
+    val black = range(unit.view.black)
+    val white = range(unit.view.white)
     black foreach drawStone(true)
     white foreach drawStone(false)
 
@@ -73,9 +73,9 @@ class fieldController(private val canvas: Canvas) {
     gc.fillText(white.length.toString + " - " + black.length.toString, 340, 915)
     gc.fillRect(if (unit.view.turn == Turn.White) 250 else 490, 940, 60, 10)
 
-    val legal = range filter unit.view.legal.check
+    val legal = unit.view.legal.length
     // legal foreach drawStone(unit.view.turn != Turn.White, 0.5)
-    if (black.length + white.length != range.length && legal.isEmpty) {
+    if (black.length + white.length != 64 && legal == 0) {
       unit.pass()
       drawView()
     }

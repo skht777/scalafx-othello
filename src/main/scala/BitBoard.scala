@@ -22,7 +22,21 @@ sealed case class BitBoard(private val bits: Long) {
 
   def ^(bit: BitBoard): BitBoard = this ^ bit.bits
 
-  def check(put: Point[Int]): Boolean = (bits >> (put.x + put.y * 8) & 1) != 0
+  def valid(bit: Long): Boolean = (this & bit) != BitBoard.ZERO
+
+  def valid(board: BitBoard): Boolean = valid(board.bits)
+
+  def valid(put: Point[Int]): Boolean = valid(BitBoard(put))
+
+  def length: Int = {
+    @tailrec
+    def recursive(head: BitBoard, tails: Int = 0): Int = {
+      if (head.bits != 0) recursive(head >> 1, if ((head.bits & 1) == 0) tails else tails + 1)
+      else tails
+    }
+
+    recursive(this)
+  }
 }
 
 object BitBoard {
@@ -30,13 +44,13 @@ object BitBoard {
   val BLACK = BitBoard(0x0000000810000000L)
   val WHITE = BitBoard(0x0000001008000000L)
 
-  private def apply(put: Point[Int]): BitBoard = BitBoard(1L << (put.x + put.y * 8))
+  def apply(put: Point[Int]): BitBoard = BitBoard(1L << (put.x + put.y * 8))
 
   def makeReverseBoard(pos: BitBoard, player: BitBoard, opponent: BitBoard): BitBoard = {
     @tailrec
     def recursive(head: BitBoard, tails: Seq[BitBoard] = Seq())(d: Direction): BitBoard = {
-      if ((head & opponent) != ZERO) recursive(d.reverseShift(head), tails :+ head)(d)
-      else if ((head & player) != ZERO) tails.foldLeft(ZERO)(_ | _) else ZERO
+      if (head.valid(opponent)) recursive(d.reverseShift(head), tails :+ head)(d)
+      else if (head.valid(player)) tails.foldLeft(ZERO)(_ | _) else ZERO
     }
 
     Direction.values.map(d => recursive(d.reverseShift(pos))(d)).foldLeft(ZERO)(_ | _)
