@@ -39,17 +39,17 @@ class fieldController(private val canvas: Canvas) {
   }
 
   private[this] def drawView(): Unit = {
-    def strokeLine(x: Double, y: Double, w: Double, h: Double) = gc.strokeLine(x, y, x + w, y + h)
+    def strokeLine(x: Double, y: Double, w: Double, h: Double): Unit = gc.strokeLine(x, y, x + w, y + h)
 
-    def strokeLines(w: Int, h: Int, size: Double, exX: Double = 0, exY: Double = 0) = {
+    def strokeLines(w: Int, h: Int, size: Double, exX: Double = 0, exY: Double = 0): Unit = {
       gc.stroke = Color.Black
-      0 to w map (i => i * size) foreach (x => strokeLine(exX + x, exY, 0, size * h))
-      0 to h map (i => i * size) foreach (y => strokeLine(exX, exY + y, size * w, 0))
+      0 to w map (_ * size + exX) foreach (strokeLine(_, exY, 0, size * h))
+      0 to h map (_ * size + exY) foreach (strokeLine(exX, _, size * w, 0))
     }
 
-    def drawStone(inverse: Boolean, opacity: Double = 1)(pos: Point[Int]) = {
+    def drawStone(inverse: Boolean, opacity: Double = 1)(pos: Point[Int]): Unit = {
       val margin = 20.0
-      val p = pos.map(n => n.toDouble) * blockSize + Point(margin, margin) * 0.5
+      val p = pos.map(_ * blockSize) + Point(margin, margin) * 0.5
       val r = blockSize - margin
       gc.fill = if (inverse) Color.Black.opacity(opacity) else Color.White.opacity(opacity)
       gc.fillOval(p.x, p.y, r, r)
@@ -58,11 +58,10 @@ class fieldController(private val canvas: Canvas) {
     gc.fill = Color.Green
     gc.fillRect(0, 0, canvas getWidth, canvas getHeight)
     strokeLines(8, 8, blockSize)
-    val range = (b: BitBoard) => (0 until 64) filter (n => b.valid(1L << n)) map (n => Point(n % 8, n / 8))
-    val black = range(unit.view.black)
-    val white = range(unit.view.white)
-    black foreach drawStone(true)
-    white foreach drawStone(false)
+    val black = BitBoard.toPoint(unit.view.black)
+    val white = BitBoard.toPoint(unit.view.white)
+    black foreach drawStone(inverse = true)
+    white foreach drawStone(inverse = false)
 
     gc.fill = Color.Gray
     gc.fillRect(200, 850, 400, 100)
@@ -73,9 +72,9 @@ class fieldController(private val canvas: Canvas) {
     gc.fillText(white.length.toString + " - " + black.length.toString, 340, 915)
     gc.fillRect(if (unit.view.turn == Turn.White) 250 else 490, 940, 60, 10)
 
-    val legal = unit.view.legal.length
+    val legal = BitBoard.toPoint(unit.view.legal)
     // legal foreach drawStone(unit.view.turn != Turn.White, 0.5)
-    if (black.length + white.length != 64 && legal == 0) {
+    if (black.length + white.length != 64 && legal.isEmpty) {
       unit.pass()
       drawView()
     }

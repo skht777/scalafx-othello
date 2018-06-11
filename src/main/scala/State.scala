@@ -4,13 +4,13 @@
   *
   */
 object State {
-  val transStatus = (s: State) => s.view.status match {
+  val transStatus: State => State = (s: State) => s.view.status match {
     case Status.Ready => s.copy(status = Status.Active)
     case Status.GameOver => apply
     case _ => s
   }
 
-  val reverse = (put: Point[Int]) => (s: State) => {
+  val reverse: Point[Int] => State => State = (put: Point[Int]) => (s: State) => {
     val reverse = BitBoard.makeReversedBoard(put)(_, _)
 
     val (nb, nw) = if (s.view.turn == Turn.Black) reverse(s.black, s.white)
@@ -19,7 +19,7 @@ object State {
     s.copy(nb, nw, s.index + 1)
   }
 
-  val pass = (s: State) => s.copy(index = s.index + 1)
+  val pass: State => State = (s: State) => s.copy(index = s.index + 1)
 
   def apply: State = State(BitBoard.BLACK, BitBoard.WHITE)
 }

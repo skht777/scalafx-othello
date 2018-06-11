@@ -28,23 +28,28 @@ sealed case class BitBoard(private val bits: Long) {
 
   def valid(put: Point[Int]): Boolean = valid(BitBoard(put))
 
-  def length: Int = {
+  def toSeq: Seq[Int] = {
     @tailrec
-    def recursive(head: BitBoard, tails: Int = 0): Int = {
-      if (head.bits != 0) recursive(head >> 1, if ((head.bits & 1) == 0) tails else tails + 1)
+    def recursive(head: BitBoard, tails: Seq[Int] = Seq(), n: Int = 0): Seq[Int] = {
+      if (head.bits != 0) recursive(head >> 1, if ((head.bits & 1) == 0) tails else tails :+ n, n + 1)
       else tails
     }
 
     recursive(this)
   }
+
+  def length: Int = toSeq.length
 }
 
 object BitBoard {
   private val ZERO = BitBoard(0L)
+  private val toPoint: Int => Point[Int] = (n: Int) => Point(n % 8, n / 8)
   val BLACK = BitBoard(0x0000000810000000L)
   val WHITE = BitBoard(0x0000001008000000L)
 
   def apply(put: Point[Int]): BitBoard = BitBoard(1L << (put.x + put.y * 8))
+
+  def toPoint(arg: BitBoard): Seq[Point[Int]] = arg.toSeq.map(toPoint)
 
   def makeReverseBoard(pos: BitBoard, player: BitBoard, opponent: BitBoard): BitBoard = {
     @tailrec
