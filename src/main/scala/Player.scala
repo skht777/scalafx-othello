@@ -1,3 +1,5 @@
+
+
 /**
   *
   * @author skht777
@@ -13,8 +15,8 @@ sealed case class AI() extends Player {
 
   def calcLineScore(board: BitBoard): Int = {
     def score(pos: BitBoard, ds: Seq[Direction]): Int = {
-      val shift = Function.chain(ds.map(d => (b: BitBoard) => d.legalShift(b, false)))
-      (0 until 3).foldLeft(Seq(pos))((s, _) => s :+ shift(s.last)).map(board.valid) match {
+      val shift = Function.chain(ds.map(d => (b: BitBoard) => d.legalShift(b, applyMask = false)))
+      (1 to 3).foldLeft(Seq(pos))((s, _) => s :+ shift(s.last)).map(board.valid) match {
         case Seq(true, true, true) => 100
         case Seq(true, true, false) => 100
         case Seq(true, false, false) => 100
@@ -40,21 +42,34 @@ sealed case class AI() extends Player {
     }).sum
   }
 
-  def evaluate(board: BitBoard): Int = {
-    0
+  def evaluate(current: BitBoard, opponent: BitBoard): Int = {
+    val movablesScore = 100 * (current.length - opponent.length)
+    val lineScore = 3 * (calcLineScore(current) - calcLineScore(opponent))
+
+    movablesScore + lineScore
   }
 
   def calculate(state: State, put: Point[Int]): Seq[Score] = {
-    def alphaBetaEval(board: BitBoard, depth: Int, a: Int, b: Int): Int = {
-      //if (depth <= 0) return evaluate(board)
-      0
+    //@tailrec
+    def alphaBetaEval(head: State, depth: Int, a: Int, b: Int): Int = {
+      if (depth <= 0) return evaluate(head.current, head.opponent)
+      val movables = BitBoard.toPoint(head.view.legal)
+      if (movables.isEmpty) return -alphaBetaEval(State.pass(head), depth - 1, -b, -a)
+      var _a = a
+      movables.foreach(p => {
+        val next = State.reverse(p)(head)
+        _a = Math.max(_a, -alphaBetaEval(next, depth - 1, -b, -_a))
+        if (_a >= b) return _a
+      })
+
+      _a
     }
 
-    val movables = (0 until 64) map (n => Point(n % 8, n / 8)) filter state.view.legal.valid
+    val movables = BitBoard.toPoint(state.view.legal)
     val limit = System.currentTimeMillis() + 500
     var scores: Seq[Score] = Seq()
     Iterator.from(3).takeWhile(_ => System.currentTimeMillis() < limit).foreach(depth => {
-      scores = movables.map(p => Score(-alphaBetaEval(null,
+      scores = movables.map(p => Score(-alphaBetaEval(State.reverse(p)(state),
         depth - 1,
         -MaxScore,
         -MinScore

@@ -29,6 +29,10 @@ sealed case class State(private val black: BitBoard, private val white: BitBoard
   private[this] val legal: BitBoard = if (turn == Turn.Black) BitBoard.makeLegalBoard(black, white) else BitBoard.makeLegalBoard(white, black)
 
   def view: View = View(black, white, legal, turn, status)
+
+  def current: BitBoard = if (turn == Turn.Black) black else white
+
+  def opponent: BitBoard = if (turn == Turn.Black) white else black
 }
 
 sealed case class View(black: BitBoard, white: BitBoard, legal: BitBoard, turn: Turn, status: Status)
@@ -54,4 +58,3 @@ object Turn {
   case object White extends Turn
 
 }
-
