@@ -77,6 +77,9 @@ class fieldController(private val canvas: Canvas) {
     if (black.length + white.length != 64 && legal.isEmpty) {
       unit.pass()
       drawView()
+    } else if (unit.view.turn == Turn.White) {
+      unit.compute()
+      drawView()
     }
   }
 }

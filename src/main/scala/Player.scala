@@ -16,7 +16,7 @@ sealed case class AI() extends Player {
   def calcLineScore(board: BitBoard): Int = {
     def score(pos: BitBoard, ds: Seq[Direction]): Int = {
       val shift = Function.chain(ds.map(d => (b: BitBoard) => d.legalShift(b, applyMask = false)))
-      (1 to 3).foldLeft(Seq(pos))((s, _) => s :+ shift(s.last)).map(board.valid) match {
+      (1 to 2).foldLeft(Seq(pos))((s, _) => s :+ shift(s.last)).map(board.valid) match {
         case Seq(true, true, true) => 100
         case Seq(true, true, false) => 100
         case Seq(true, false, false) => 100
@@ -49,7 +49,7 @@ sealed case class AI() extends Player {
     movablesScore + lineScore
   }
 
-  def calculate(state: State, put: Point[Int]): Seq[Score] = {
+  def calculate(state: State): Seq[Score] = {
     //@tailrec
     def alphaBetaEval(head: State, depth: Int, a: Int, b: Int): Int = {
       if (depth <= 0) return evaluate(head.current, head.opponent)
