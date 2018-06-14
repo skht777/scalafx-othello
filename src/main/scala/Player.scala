@@ -1,5 +1,3 @@
-
-
 /**
   *
   * @author skht777
@@ -7,7 +5,7 @@
   */
 sealed trait Player
 
-sealed case class Score(score: Int, put: Point[Int])
+sealed case class Score(put: Point[Int], score: Int)
 
 sealed case class AI() extends Player {
   private val MinScore = -10000
@@ -69,13 +67,38 @@ sealed case class AI() extends Player {
     val limit = System.currentTimeMillis() + 500
     var scores: Seq[Score] = Seq()
     Iterator.from(3).takeWhile(_ => System.currentTimeMillis() < limit).foreach(depth => {
-      scores = movables.map(p => Score(-alphaBetaEval(State.reverse(p)(state),
+      scores = movables.map(p => Score(p, -alphaBetaEval(State.reverse(p)(state),
         depth - 1,
         -MaxScore,
         -MinScore
-      ), p))
+      )))
     })
 
     scores.sortBy(-_.score)
+  }
+
+  def fullSearch(state: State): Seq[Score] = {
+    BitBoard.toPoint(state.view.legal).map(p =>
+      Score(p, -alphaBetaFull(State.reverse(p)(state),
+        0,
+        -MaxScore,
+        -MinScore
+      ))).sortBy(-_.score)
+  }
+
+  def alphaBetaFull(head: State, passes: Int, a: Int, b: Int): Int = {
+    val (black, white) = (head.view.black.length, head.view.white.length)
+    if (black + white == 64) return black - white
+    val movables = BitBoard.toPoint(head.view.legal)
+    if (movables.isEmpty && passes > 0) return black - white
+    if (movables.isEmpty) return -alphaBetaFull(State.pass(head), passes + 1, -b, -a)
+    var _a = a
+    movables.foreach(p => {
+      val next = State.reverse(p)(head)
+      _a = Math.max(_a, -alphaBetaFull(next, passes, -b, -_a))
+      if (_a >= b) return _a
+    })
+
+    _a
   }
 }
