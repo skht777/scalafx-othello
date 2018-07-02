@@ -13,6 +13,6 @@ case class ViewUnit() {
 
   def pass(): Unit = state = State.pass(state)
 
-  def compute(): Unit = state = State.reverse(cpu.calculate(state).head.put)(state)
+  def compute(): Unit = state = State.reverse(cpu.calculate(state))(state)
 }
 

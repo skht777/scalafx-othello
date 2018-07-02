@@ -1,3 +1,5 @@
+import scala.annotation.tailrec
+
 /**
   *
   * @author skht777
@@ -47,58 +49,52 @@ sealed case class AI() extends Player {
     movablesScore + lineScore
   }
 
-  def calculate(state: State): Seq[Score] = {
-    //@tailrec
-    def alphaBetaEval(head: State, depth: Int, a: Int, b: Int): Int = {
-      if (depth <= 0) return evaluate(head.current, head.opponent)
+  def calculate(state: State): Point[Int] = {
+    val movables = BitBoard.toPoint(state.view.legal)
+    val limit = System.currentTimeMillis() + 500
+    val next = (p: Point[Int]) => State.reverse(p)(state)
+
+    // @tailrec
+    def alphaBetaEval(head: State, depth: Int, a: Int = -MaxScore, b: Int = -MinScore): Int = {
       val movables = BitBoard.toPoint(head.view.legal)
-      if (movables.isEmpty) return -alphaBetaEval(State.pass(head), depth - 1, -b, -a)
+      if (depth <= 0) evaluate(head.current, head.opponent)
+      else if (movables.isEmpty) -alphaBetaEval(State.pass(head), depth - 1, -b, -a)
+      else movables.foldLeft(a)((_a, p) =>
+        if (_a >= b) _a
+        else Math.max(_a, -alphaBetaEval(State.reverse(p)(head), depth - 1, -b, -_a))
+      )
+    }
+
+    @tailrec
+    def limitedRecursive(current: Long, depth: Int = 3, res: Seq[Score] = Seq()): Seq[Score] = {
+      if (current < limit) {
+        val scores = movables.map(p => Score(p, -alphaBetaEval(next(p), depth)))
+        limitedRecursive(System.currentTimeMillis(), depth + 1, scores)
+      } else res
+    }
+
+    limitedRecursive(System.currentTimeMillis(), depth = 1).minBy(-_.score).put
+  }
+
+  def fullSearch(state: State): Point[Int] = {
+    def alphaBetaFull(head: State, passes: Int = 0, a: Int = -MaxScore, b: Int = -MinScore): Int = {
+      val (black, white) = (head.view.black.length, head.view.white.length)
+      if (black + white == 64) return black - white
+      val movables = BitBoard.toPoint(head.view.legal)
+      if (movables.isEmpty && passes > 0) return black - white
+      if (movables.isEmpty) return -alphaBetaFull(State.pass(head), passes + 1, -b, -a)
       var _a = a
       movables.foreach(p => {
         val next = State.reverse(p)(head)
-        _a = Math.max(_a, -alphaBetaEval(next, depth - 1, -b, -_a))
+        _a = Math.max(_a, -alphaBetaFull(next, passes, -b, -_a))
         if (_a >= b) return _a
       })
 
       _a
     }
 
-    val movables = BitBoard.toPoint(state.view.legal)
-    val limit = System.currentTimeMillis() + 500
-    var scores: Seq[Score] = Seq()
-    Iterator.from(3).takeWhile(_ => System.currentTimeMillis() < limit).foreach(depth => {
-      scores = movables.map(p => Score(p, -alphaBetaEval(State.reverse(p)(state),
-        depth - 1,
-        -MaxScore,
-        -MinScore
-      )))
-    })
-
-    scores.sortBy(-_.score)
-  }
-
-  def fullSearch(state: State): Seq[Score] = {
-    BitBoard.toPoint(state.view.legal).map(p =>
-      Score(p, -alphaBetaFull(State.reverse(p)(state),
-        0,
-        -MaxScore,
-        -MinScore
-      ))).sortBy(-_.score)
-  }
-
-  def alphaBetaFull(head: State, passes: Int, a: Int, b: Int): Int = {
-    val (black, white) = (head.view.black.length, head.view.white.length)
-    if (black + white == 64) return black - white
-    val movables = BitBoard.toPoint(head.view.legal)
-    if (movables.isEmpty && passes > 0) return black - white
-    if (movables.isEmpty) return -alphaBetaFull(State.pass(head), passes + 1, -b, -a)
-    var _a = a
-    movables.foreach(p => {
-      val next = State.reverse(p)(head)
-      _a = Math.max(_a, -alphaBetaFull(next, passes, -b, -_a))
-      if (_a >= b) return _a
-    })
-
-    _a
+    BitBoard.toPoint(state.view.legal)
+      .map(p => Score(p, -alphaBetaFull(State.reverse(p)(state))))
+      .minBy(-_.score).put
   }
 }

@@ -22,11 +22,9 @@ sealed case class BitBoard(private val bits: Long) {
 
   def ^(bit: BitBoard): BitBoard = this ^ bit.bits
 
-  def valid(bit: Long): Boolean = (this & bit) != BitBoard.ZERO
+  def valid(bit: Long): Boolean = (this.bits & bit) != 0
 
   def valid(board: BitBoard): Boolean = valid(board.bits)
-
-  def valid(put: Point[Int]): Boolean = valid(BitBoard(put))
 
   def toSeq: Seq[Int] = {
     @tailrec
@@ -39,6 +37,8 @@ sealed case class BitBoard(private val bits: Long) {
   }
 
   def length: Int = toSeq.length
+
+  override def toString: String = toSeq mkString ", "
 }
 
 object BitBoard {
