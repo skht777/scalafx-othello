@@ -6,7 +6,7 @@ import scalafx.scene.Scene
 import scalafx.scene.canvas.{Canvas, GraphicsContext}
 import scalafx.scene.input.MouseEvent
 import scalafx.scene.paint.{Color, PaintIncludes}
-import scalafx.scene.text.Font
+import scalafx.scene.text.{Font, Text}
 import scalafxml.core.macros.sfxml
 import scalafxml.core.{FXMLView, NoDependencyResolver}
 
@@ -28,14 +28,16 @@ class fieldController(private val canvas: Canvas) {
   private[this] val blockSize = canvas.getWidth / 8
   private[this] val gc: GraphicsContext = jfxGraphicsContext2sfx(canvas getGraphicsContext2D)
   private[this] var computed: Boolean = false
-
-  private[this] def task: Task[Unit] = jfxTask2sfxTask(() => Platform.runLater({
-    unit.compute()
-    drawView()
-    computed = false
-  }))
-
-  gc.font = Font.font(20)
+  private[this] val r = 30
+  private[this] val x = canvas.getWidth / 4
+  private[this] val y = canvas.getWidth
+  private[this] val h = (canvas.getHeight - y) / 2
+  private[this] val margin = x / 4
+  private[this] val whiteStone = x + margin
+  private[this] val blackStone = x * 3 - r - margin
+  private[this] val stoneHeight = y + h - r / 2
+  private[this] val score = "%-2d - %-2d"
+  gc.font = Font.font(24)
   drawView()
 
   def operate(e: MouseEvent): Unit = {
@@ -45,6 +47,18 @@ class fieldController(private val canvas: Canvas) {
       unit.reverse(p)
       drawView()
     }
+  }
+
+  private[this] def task: Task[Unit] = jfxTask2sfxTask(() => Platform.runLater({
+    unit.compute()
+    drawView()
+    computed = false
+  }))
+
+  private[this] def getTextSize(target: String, font: Font): Point[Double] = {
+    val text = new Text(target)
+    text.font = font
+    Point(text.getLayoutBounds.getWidth, text.getLayoutBounds.getHeight)
   }
 
   private[this] def drawView(): Unit = {
@@ -69,17 +83,19 @@ class fieldController(private val canvas: Canvas) {
     strokeLines(8, 8, blockSize)
     val black = BitBoard.toPoint(unit.view.black)
     val white = BitBoard.toPoint(unit.view.white)
+    val text = score.format(white.length, black.length)
+    val textSize = getTextSize(text, gc.font) * 0.5
+    val turn = if (unit.view.turn == Turn.White) whiteStone else blackStone
     black foreach drawStone(Color.Black)
     white foreach drawStone(Color.White)
-
     gc.fill = Color.Gray
-    gc.fillRect(100, 425, 200, 50)
+    gc.fillRect(x, y + h / 2, x * 2, h)
     gc.fill = Color.White
-    gc.fillOval(125, 435, 30, 30)
+    gc.fillOval(whiteStone, stoneHeight, r, r)
     gc.fill = Color.Black
-    gc.fillOval(245, 435, 30, 30)
-    gc.fillText(white.length.toString + " - " + black.length.toString, 170, 457.5)
-    gc.fillRect(if (unit.view.turn == Turn.White) 125 else 245, 940, 60, 10)
+    gc.fillOval(blackStone, stoneHeight, r, r)
+    gc.fillText(text, x * 2 - textSize.x, y + h + textSize.y / 2)
+    gc.fillRect(turn, y + h + h / 2 - 5, r, 5)
 
     val legal = BitBoard.toPoint(unit.view.legal)
     // legal foreach drawStone(unit.view.turn != Turn.White, 0.5)
